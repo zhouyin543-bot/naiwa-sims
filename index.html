@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>奶系模拟人生 3D · 奶蛙、奶鼠、奶豆与奶粉的合租日常</title>
+  <meta name="description" content="奶龙同人奶系家族 3D 模拟人生网页游戏：操控奶蛙、奶鼠、奶豆，体验与黏人邻居奶粉相爱相杀的 3D 模拟生活。" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,2 28,16 16,30 4,16' fill='%232cc764'/%3E%3C/svg%3E" />
+  <script type="module" crossorigin src="./assets/index-Cvq49C7p.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BPwGxeNs.css">
+</head>
+<body>
+  <!-- 3D WebGL Canvas Host -->
+  <div id="viewport" aria-label="奶系模拟人生 3D 场景"></div>
+
+  <!-- 3D Projected World Overlays (Speech Bubbles, Floating +/- Popups, Hover Label) -->
+  <div id="world-overlays"></div>
+  <div id="hover-tooltip" class="hover-tooltip" hidden></div>
+
+  <!-- Top Bar: House Info, Camera/Wall Controls, Buy Mode, Save/Mute -->
+  <header class="hud-top">
+    <div class="top-left-pill">
+      <div class="brand-badge">
+        <span class="plumbob-mini" aria-hidden="true"></span>
+        <div class="brand-text">
+          <h1>奶家小洋房</h1>
+          <span id="household-funds" class="funds-value">§ 1,200</span>
+        </div>
+      </div>
+      <div class="divider-v"></div>
+      <div class="sim-clock">
+        <div class="clock-row">
+          <span id="clock-day" class="clock-day">第 1 天 · 周一</span>
+          <span id="clock-time" class="clock-time">08:30</span>
+          <span id="clock-weather" class="clock-phase" title="当前时段">☀️</span>
+        </div>
+        <div class="speed-controls" role="group" aria-label="时间速度">
+          <button class="speed-btn" data-speed="0" title="暂停 (Space)">⏸</button>
+          <button class="speed-btn active" data-speed="1" title="1倍速 (1)">▶</button>
+          <button class="speed-btn" data-speed="2" title="2倍速 (2)">▶▶</button>
+          <button class="speed-btn" data-speed="3" title="3倍速 (3)">▶▶▶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-right-pill">
+      <button id="btn-wall-mode" class="tool-btn" title="切换墙体视角 (H)">
+        <span class="btn-ico">🧱</span>
+        <span id="wall-mode-label">半切墙</span>
+      </button>
+      <button id="btn-autonomy" class="tool-btn active" title="开启/关闭角色自主意识">
+        <span class="btn-ico">🧠</span>
+        <span id="autonomy-label">自主AI开</span>
+      </button>
+      <button id="btn-trigger-event" class="tool-btn accent-warm" title="立即触发一条随机抽象事件">
+        <span class="btn-ico">🎲</span>
+        <span>抽象事件</span>
+      </button>
+      <button id="btn-call-naifen" class="tool-btn accent-pink" title="喊奶粉来家里找奶鼠玩！">
+        <span class="btn-ico">💗</span>
+        <span id="naifen-btn-label">喊奶粉串门</span>
+      </button>
+      <button id="btn-buy-mode" class="tool-btn accent-buy" title="购买家具与换装修 (B)">
+        <span class="btn-ico">🛋️</span>
+        <span>装修商店</span>
+      </button>
+      <div class="divider-v"></div>
+      <button id="btn-sound" class="icon-btn" title="开/关音效">🔊</button>
+      <button id="btn-save" class="icon-btn" title="立即保存进度">💾</button>
+      <button id="btn-help" class="icon-btn" title="操作指南">❓</button>
+    </div>
+  </header>
+
+  <!-- Notification / Event Log Toast Stack (Top Right below bar) -->
+  <aside id="toast-stack" class="toast-stack" aria-live="polite"></aside>
+
+  <!-- Left Rail: Authentic Sims Vertical Action Queue -->
+  <aside class="action-queue-rail" aria-label="行动队列">
+    <div id="action-queue" class="action-queue"></div>
+  </aside>
+
+  <!-- Build/Buy Mode Banner (Shown only during furniture placement) -->
+  <div id="placement-banner" class="placement-banner" hidden>
+    <span id="placement-text">点击地面空位摆放家具 · 按 R 旋转 · 右键或 ESC 取消</span>
+    <button id="btn-rotate-ghost" class="mini-pill-btn">↻ 旋转 (R)</button>
+    <button id="btn-cancel-place" class="mini-pill-btn danger">✕ 取消</button>
+  </div>
+
+  <!-- Bottom HUD Dock: Sims 4 Inspired Layout -->
+  <footer class="hud-bottom">
+    <!-- Left: Active Sim Portrait, Current Mood & Moodlets -->
+    <section class="active-sim-panel" id="active-sim-panel">
+      <div class="sim-portrait-card" id="active-portrait-btn" title="双击镜头聚焦当前角色">
+        <div class="portrait-ring" id="active-mood-ring">
+          <div class="portrait-avatar" id="active-avatar"></div>
+        </div>
+        <div class="mood-badge" id="active-mood-label">开心</div>
+      </div>
+      <div class="active-sim-meta">
+        <div class="active-sim-header">
+          <strong id="active-sim-name">奶蛙</strong>
+          <span id="active-sim-action" class="current-action-chip">发呆中</span>
+        </div>
+        <div id="active-sim-traits" class="traits-row"></div>
+        <div id="moodlets-strip" class="moodlets-strip" aria-label="情绪状态卡"></div>
+      </div>
+    </section>
+
+    <!-- Center: Playable Household Switcher + Quick Mood/Needs Indicator -->
+    <section class="household-dock" aria-label="家庭成员切换">
+      <div id="household-switcher" class="household-switcher"></div>
+      <div id="naifen-status-chip" class="neighbor-status-chip" title="点击定位奶粉">
+        <span class="dot pink"></span>
+        <span id="naifen-status-text">奶粉在隔壁蹲点</span>
+      </div>
+    </section>
+
+    <!-- Right: Sims Inspector Tabs + Drawer -->
+    <section class="inspector-dock">
+      <div id="inspector-drawer" class="inspector-drawer">
+        <div class="drawer-header">
+          <h2 id="drawer-title">需求状态</h2>
+          <button id="btn-toggle-drawer" class="drawer-collapse-btn" title="收起/展开面板">▾</button>
+        </div>
+        <div id="drawer-body" class="drawer-body"></div>
+      </div>
+      <nav class="inspector-tabs" role="tablist" aria-label="游戏面板">
+        <button class="tab-btn active" data-tab="needs" title="六大需求">
+          <span>❤️</span><small>需求</small>
+        </button>
+        <button class="tab-btn" data-tab="relations" title="人际关系与羁绊">
+          <span>💞</span><small>关系</small>
+        </button>
+        <button class="tab-btn" data-tab="skills" title="技能与职业">
+          <span>⭐</span><small>事业</small>
+        </button>
+        <button class="tab-btn" data-tab="aspirations" title="人生抱负">
+          <span>🏆</span><small>抱负</small>
+        </button>
+        <button class="tab-btn" data-tab="shop" title="简化建造与家具商店">
+          <span>🛋️</span><small>装修</small>
+        </button>
+      </nav>
+    </section>
+  </footer>
+
+  <!-- Authentic Sims Pie Menu (Floating Radial/Cluster Menu on Click) -->
+  <div id="pie-menu" class="pie-menu" hidden>
+    <div class="pie-header">
+      <span id="pie-target-title">选择互动</span>
+      <button id="pie-close" class="pie-close" aria-label="关闭">✕</button>
+    </div>
+    <div id="pie-categories" class="pie-categories"></div>
+    <div id="pie-options" class="pie-options"></div>
+  </div>
+
+  <!-- Random Absurd Event / Chance Card Modal -->
+  <div id="event-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="event-modal" role="dialog" aria-modal="true" aria-labelledby="event-title">
+      <div class="event-banner" id="event-banner">
+        <span class="event-tag" id="event-tag">🎲 抽象随机事件</span>
+        <span class="event-emoji" id="event-emoji">🐸</span>
+      </div>
+      <div class="event-content">
+        <h2 id="event-title">事件标题</h2>
+        <p id="event-desc">事件描述</p>
+        <div id="event-choices" class="event-choices"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Guide / Controls Modal -->
+  <div id="help-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <div class="help-header">
+        <h2 id="help-title">🎮 奶系模拟人生 3D · 游玩指南</h2>
+        <button id="btn-close-help" class="pie-close">✕</button>
+      </div>
+      <div class="help-body">
+        <div class="help-grid">
+          <div class="help-item">
+            <strong>🖱️ 3D 视角操控</strong>
+            <p>左键点击家具或角色弹出互动菜单；右键拖动旋转 360°；滚轮缩放；WASD / 方向键平移镜头；双击头像镜头跟随。</p>
+          </div>
+          <div class="help-item">
+            <strong>💗 奶粉 × 奶鼠 专属玩法</strong>
+            <p>奶粉是常驻黏人邻居，会主动上门找奶鼠贴贴或整蛊！点奶粉可互动「怀里贴贴」「红绳反遛」「心形打卡」，友谊 ≥ 65 或羁绊 ≥ 60 时可<strong>邀请奶粉搬来同居</strong>成为第 4 位可控室友！</p>
+          </div>
+          <div class="help-item">
+            <strong>🛋️ 简化装修与赚钱</strong>
+            <p>点右上角「装修商店」或按 <kbd>B</kbd> 可买新家具摆进家、或一键换地板墙色；点击角色可出门上班，或在电脑接单/画架画名画赚 § 奶币。</p>
+          </div>
+          <div class="help-item">
+            <strong>⌨️ 常用快捷键</strong>
+            <p><kbd>Space</kbd> 暂停/继续 · <kbd>1/2/3</kbd> 倍速 · <kbd>H</kbd> 切换墙体 · <kbd>Tab</kbd> 切换角色 · <kbd>R</kbd> 旋转摆放家具</p>
+          </div>
+        </div>
+        <div class="help-footer">
+          <button id="btn-reset-save" class="mini-pill-btn danger">🗑️ 清空存档重新开始</button>
+          <button id="btn-start-play" class="primary-cta">开始奶系人生！</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
